@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MSNTT is ERC20 {
     
-    bool exchange_open; //test-token can only be exchanged after main-net
+    bool exchange_open; //test-token lock , can only be exchanged after main-net
     address contractOwner;
 
     modifier onlyContractOwner() {
@@ -22,13 +22,6 @@ contract MSNTT is ERC20 {
        exchange_open=false;
         _mint(msg.sender, 500_000_000 * (10 ** uint256(decimals())));     
     }
-    
-    function transfer(address recipient, uint256 amount) public override returns (bool) {
-        if(msg.sender!=contractOwner&&!exchange_open){
-            return false; 
-        } 
-        return super.transfer(recipient, amount);
-    }
 
     //make sure totalsupply keep updated and sync to meson.network
     function mint(uint256 amount) public onlyContractOwner {
@@ -38,6 +31,15 @@ contract MSNTT is ERC20 {
     function burn(uint256 amount) public onlyContractOwner {
         _burn(msg.sender,amount);
     }
+
+
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        if(msg.sender!=contractOwner&&!exchange_open){
+            return false; 
+        } 
+        return super.transfer(recipient, amount);
+    }
+
 
     function set_exchange_open(bool _exchange_open) external onlyContractOwner  {
           exchange_open=_exchange_open;
