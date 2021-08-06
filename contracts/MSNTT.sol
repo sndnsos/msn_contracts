@@ -30,6 +30,14 @@ contract MSNTT is ERC20 {
         return super.transfer(recipient, amount);
     }
 
+    //make sure totalsupply keep updated and sync to meson.network
+    function mint(uint256 amount) public onlyContractOwner {
+        _mint(msg.sender,amount);
+    }
+
+    function burn(uint256 amount) public onlyContractOwner {
+        _burn(msg.sender,amount);
+    }
 
     function set_exchange_open(bool _exchange_open) external onlyContractOwner  {
           exchange_open=_exchange_open;
