@@ -23,7 +23,7 @@ contract MSNTT is ERC20 {
         _mint(msg.sender, 500_000_000 * (10 ** uint256(decimals())));     
     }
 
-    //make sure totalsupply keep updated and sync to meson.network
+    //make sure totalsupply keep synchronized to meson.network
     function mint(uint256 amount) public onlyContractOwner {
         _mint(msg.sender,amount);
     }
