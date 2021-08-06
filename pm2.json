@@ -1,7 +1,7 @@
 {
     "apps": [
                 {
-                        "name": "ss-template",
+                        "name": "msntt_contract",
                         "script": "./src/main.js",
                         "cwd": "",
                         "env": {
@@ -14,7 +14,7 @@
                                 
                         ],
                         "merge_logs": true,
-                        "args":["--config=specific1"],
+                        "args":["--config=prod"],
                         "instances": "max",
                         "exec_mode": "cluster",
                         "error_file": "./log/pm2_error.log",

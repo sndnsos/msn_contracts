@@ -16,7 +16,7 @@ koaApp.use(async (ctx, next)=>{
             await next();   // execute code for descendants
             if(!ctx.body){  
                 ctx.status = 404; ctx.body = "not found";
-                //logger.warn("not found 404:",ctx.request);
+                logger.debug("not found 404:",ctx.request);
             }           
     }catch(e){
         ctx.status = 500; ctx.body = "server error";

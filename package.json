@@ -11,18 +11,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/daqnext/simple_server_template.git"
+    "url": "git+https://github.com/daqnext/msntt_contract.git"
   },
   "keywords": [
-    "simple",
-    "fast"
+    "msntt",
+    "meson.network",
+    "test token contract"
   ],
   "author": "LEO",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/daqnext/simple_server_template/issues"
+    "url": "https://github.com/daqnext/msntt_contract/issues"
   },
-  "homepage": "https://github.com/daqnext/simple_server_template#readme",
+  "homepage": "https://github.com/daqnext/msntt_contract#readme",
   "dependencies": {
     "axios": "^0.21.1",
     "ioredis": "^4.27.6",
