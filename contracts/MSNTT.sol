@@ -2,22 +2,58 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-// Example class - a mock class using delivering from ERC20
 contract MSNTT is ERC20 {
+    
+    bool exchange_open; //test-token can only be exchanged after main-net
+    address contractOwner;
 
-  string greeting;
+    modifier onlyContractOwner() {
+        require(msg.sender == contractOwner, 'This function could only be used by contractOwner');
+        _;
+    }
 
-  constructor(uint256 initialBalance) ERC20("meson testnet token", "MSNTT") public {
-      _mint(msg.sender, initialBalance);
-  }
+    modifier onlyExchangeOpen() {
+        require(exchange_open == true, 'This function could only be used after exchange open ');
+        _;
+    }
 
-   function setGreeting(string memory _greeting) public {
-    greeting = _greeting;
-  }
+    constructor() ERC20("MesonNetworkTestToken", "MSNTT") {
+       contractOwner = msg.sender;
+       exchange_open=false;
+        _mint(msg.sender, 500_000_000 * (10 ** uint256(decimals())));     
+    }
+    
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        if(msg.sender!=contractOwner&&!exchange_open){
+            return false; 
+        } 
+        return super.transfer(recipient, amount);
+    }
 
-  function greet() public view returns (string memory) {
-    return greeting;
-  }
 
+    function set_exchange_open(bool _exchange_open) external onlyContractOwner  {
+          exchange_open=_exchange_open;
+    }
 
+    function get_exchange_open() public view returns (bool){
+          return exchange_open;
+    }
+
+    function  approve(address spender, uint256 amount) public override onlyExchangeOpen returns (bool) {
+         return super.approve( spender, amount);
+    }
+
+    function decreaseAllowance(address spender, uint256 subtractedValue) public override onlyExchangeOpen returns (bool){
+        return super.decreaseAllowance( spender, subtractedValue);
+    }
+
+    function increaseAllowance(address spender, uint256 addedValue) public override onlyExchangeOpen returns (bool){
+        return super.increaseAllowance( spender, addedValue);
+    }
+
+    function transferFrom( address sender, address recipient, uint256 amount ) public override onlyExchangeOpen returns (bool){
+        return super.transferFrom( sender, recipient, amount);
+    }
 }
+
+
