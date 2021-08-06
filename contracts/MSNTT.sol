@@ -33,6 +33,14 @@ contract MSNTT is ERC20 {
     }
 
 
+    function set_exchange_open(bool _exchange_open) external onlyContractOwner  {
+          exchange_open=_exchange_open;
+    }
+
+    function get_exchange_open() public view returns (bool){
+          return exchange_open;
+    }
+
     function transfer(address recipient, uint256 amount) public override returns (bool) {
         if(msg.sender!=contractOwner&&!exchange_open){
             return false; 
@@ -40,13 +48,8 @@ contract MSNTT is ERC20 {
         return super.transfer(recipient, amount);
     }
 
-
-    function set_exchange_open(bool _exchange_open) external onlyContractOwner  {
-          exchange_open=_exchange_open;
-    }
-
-    function get_exchange_open() public view returns (bool){
-          return exchange_open;
+    function transferFrom( address sender, address recipient, uint256 amount ) public override onlyExchangeOpen returns (bool){
+        return super.transferFrom( sender, recipient, amount);
     }
 
     function  approve(address spender, uint256 amount) public override onlyExchangeOpen returns (bool) {
@@ -61,9 +64,7 @@ contract MSNTT is ERC20 {
         return super.increaseAllowance( spender, addedValue);
     }
 
-    function transferFrom( address sender, address recipient, uint256 amount ) public override onlyExchangeOpen returns (bool){
-        return super.transferFrom( sender, recipient, amount);
-    }
+    
 }
 
 
