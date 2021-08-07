@@ -4,9 +4,9 @@
   "description": "meson network test token contract ",
   "main": "index.js",
   "scripts": {
-    "build":"waffle",
+    "build": "waffle",
     "test": "waffle & mocha  ./test/*.js --timeout 15000 --exit",
-    "dev":  "waffle & nodemon ./src/main.js",
+    "dev": "waffle & nodemon ./src/main.js",
     "prod": "waffle & pm2 start pm2.json"
   },
   "repository": {
@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@openzeppelin/contracts": "^4.2.0",
+    "@openzeppelin/contracts-upgradeable": "^4.2.0",
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.4.0",
     "mocha": "^9.0.3",
