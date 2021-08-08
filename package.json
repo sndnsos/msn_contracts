@@ -1,7 +1,7 @@
 {
-  "name": "msntt_contract",
+  "name": "msn_contracts",
   "version": "1.0.0",
-  "description": "meson network test token contract ",
+  "description": "meson network token contracts",
   "main": "index.js",
   "scripts": {
     "build": "waffle",
@@ -14,16 +14,15 @@
     "url": "git+https://github.com/daqnext/msntt_contract.git"
   },
   "keywords": [
-    "msntt",
-    "meson.network",
-    "test token contract"
+    "MSN",
+    "meson.network"
   ],
   "author": "LEO",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/daqnext/msntt_contract/issues"
+    "url": "https://github.com/daqnext/msn_contracts/issues"
   },
-  "homepage": "https://github.com/daqnext/msntt_contract#readme",
+  "homepage": "https://github.com/daqnext/msn_contracts#readme",
   "dependencies": {
     "axios": "^0.21.1",
     "ioredis": "^4.27.6",

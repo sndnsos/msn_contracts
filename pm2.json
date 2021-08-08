@@ -1,7 +1,7 @@
 {
     "apps": [
                 {
-                        "name": "msntt_contract",
+                        "name": "msn_contract",
                         "script": "./src/main.js",
                         "cwd": "",
                         "env": {
