@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL v3
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -8,12 +10,16 @@ interface IMSN is IERC20{
 
 contract MINING {
 
-    address MSNAddr;
-    address MiningOwner;
+    string  public name;
+    address private MSNAddr;
+    address private MiningOwner;
+ 
 
-    constructor(){
-       MiningOwner = msg.sender;     
+    constructor(string memory _name){
+       MiningOwner = msg.sender;    
+       name=_name; 
     }
+
 
     modifier onlyMiningOwner() {
         require(msg.sender == MiningOwner, 'only MiningOwner');
@@ -37,8 +43,8 @@ contract MINING {
     }
 
 
-    event transfer_to_webtoken_EVENT(string indexed cookie,address indexed _from , address indexed _to, uint256 amount);
     //cookie is the identifier of some off chain user
+    event transfer_to_webtoken_EVENT(string indexed cookie,address indexed _from , address indexed _to, uint256 amount);
     function transfer_to_webtoken(string calldata cookie,uint256 amount) external returns (bool) {
         bool dresult= IMSN(MSNAddr).transfer_to_maintainer(MiningOwner,amount);
         if(dresult){
