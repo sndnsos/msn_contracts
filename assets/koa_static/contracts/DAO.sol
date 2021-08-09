@@ -25,9 +25,7 @@ contract DAO {
     address private DAOOwner;
     address private MSNAddr;
 
-    uint stack_keep_secs ; // how much time in seconds to keep before withdraw
-    mapping (address=> uint256) private stack; // stack owner => amout
-    mapping (address=> uint) private stack_lasttime; //stack owner => last stacking time
+    uint withdraw_keep_secs ; // how much time in seconds to keep before withdraw
     mapping (address=>string) private keepers;// how can create and manage proposals  
 
 
@@ -41,7 +39,7 @@ contract DAO {
         DAOOwner = msg.sender;       
         MSNAddr=_MSNcontractAddr;
         keepers[msg.sender]='DAOOwner';    
-        stack_keep_secs=3600*24*5; //5 days to keep       
+        withdraw_keep_secs=3600*24*5; //5 days to keep       
     }
 
 
@@ -56,12 +54,12 @@ contract DAO {
     }
 
 
-    function set_stack_keep_secs(uint secs) public onlyDAOOwner {
-        stack_keep_secs=secs;
+    function set_withdraw_keep_secs(uint secs) public onlyDAOOwner {
+        withdraw_keep_secs=secs;
     }
 
-    function get_stack_keep_secs() public view returns(uint){
-        return stack_keep_secs;
+    function get_withdraw_keep_secs() public view returns(uint){
+        return withdraw_keep_secs;
     }
 
 
@@ -118,7 +116,7 @@ contract DAO {
     event remove_deposit_EVENT (address _from, uint256 amount);
     function remove_deposit(uint256 amount) external {
         uint lastdt = IMSN(MSNAddr).deposit_lasttime(address(this), msg.sender);
-        require(lastdt+stack_keep_secs >block.timestamp,"Not Enough Time" );
+        require(lastdt+withdraw_keep_secs >block.timestamp,"Not Enough Time" );
         IMSN(MSNAddr).withdraw_from_maintainer(msg.sender,amount);
         emit remove_deposit_EVENT(msg.sender,amount);
     }
