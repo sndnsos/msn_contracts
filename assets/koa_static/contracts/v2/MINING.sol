@@ -5,10 +5,6 @@ pragma solidity ^0.7.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/cryptography/MerkleProof.sol";  
 
-// interface IMSN is IERC20{
-//      function  withdraw_from_maintainer(address recipient,uint256 amount) external returns (bool);
-// }
-
 
 contract MINING {
 
