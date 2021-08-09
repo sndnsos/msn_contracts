@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL v3
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.6;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -45,6 +45,12 @@ contract MSN is ERC20 {
         emit add_maintainer_EVENT(maintainer_addr,name);
     }
 
+    function get_maintainer(address maintainer_addr) external view returns ( string memory){
+        require(bytes(maintainers[maintainer_addr]).length!=0, "NO SUCH MAINTAINER");      
+        return maintainers[maintainer_addr];
+    }
+    
+
     event remove_maintainer_EVENT(address maintainer_addr,string maintainer_name);
     function remove_maintainer(address maintainer_addr) public onlyContractOwner {
         require(bytes(maintainers[maintainer_addr]).length!=0, "NO SUCH MAINTAINER");
@@ -66,37 +72,19 @@ contract MSN is ERC20 {
         return result;
     }
 
-    event to_maintainer_EVENT(address indexed _from,address indexed _to, uint256 amount);
-    function transfer_to_maintainer(address maintainer_addr,uint256 amount) public returns (bool) {
+
+
+    event transfer_to_maintainer_EVENT(string indexed cookie,address indexed _to,address indexed _from, uint256 amount,uint time);
+    function transfer_to_maintainer(address maintainer_addr,uint256 amount,string calldata cookie) external returns (bool) {
         require(bytes(maintainers[maintainer_addr]).length!=0, "NO SUCH MAINTAINER");
         bool result= super.transfer(maintainer_addr, amount);
         if(result){
-                emit to_maintainer_EVENT(msg.sender,maintainer_addr, amount);
+                emit transfer_to_maintainer_EVENT(cookie,maintainer_addr,msg.sender,amount,block.timestamp);
         }
         return result;
     }
 
-    function is_maintainer(address maintainer_addr) public view returns (bool){
-        return (bytes(maintainers[maintainer_addr]).length!=0);
-    }
-
-
-    struct MaintainerInfo {
-        address addr;
-        uint256 balance;
-        string  name;
-    }
-
-    function get_maintainer(address maintainer_addr) external view returns ( MaintainerInfo memory){
-        require(bytes(maintainers[maintainer_addr]).length!=0, "NO SUCH MAINTAINER");
-        MaintainerInfo memory minfo;
-        minfo.addr=maintainer_addr;
-        minfo.balance=super.balanceOf(maintainer_addr);
-        minfo.name=maintainers[maintainer_addr];
-        return minfo;
-    }
     
-
     ////////end of maintainer part///////////////////
  
 
@@ -123,6 +111,7 @@ contract MSN is ERC20 {
         return super.transfer(recipient, amount);
     }
 
+ 
     function transferFrom( address sender, address recipient, uint256 amount ) public override MaintainerORExchangeOpen returns (bool){
         return super.transferFrom( sender, recipient, amount);
     }

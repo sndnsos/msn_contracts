@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL v3
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/cryptography/MerkleProof.sol";  
 
 interface IMSN is IERC20{
     function transfer_to_maintainer(address maintainer_addr,uint256 amount) external returns (bool);
@@ -13,7 +14,10 @@ contract MINING {
     string  public name;
     address private MSNAddr;
     address private MiningOwner;
- 
+
+    mapping(bytes32=>uint256) merkleRoots;// merkleRoot=>balance
+    mapping(bytes32 => mapping(uint256 => bool)) claimed; //bytes32 merkleRoot => (index => true|false)
+     
 
     constructor(string memory _name){
        MiningOwner = msg.sender;    
@@ -34,28 +38,51 @@ contract MINING {
         return MSNAddr;
     }
 
-    function get_mining_owner() public view returns(address) {
+    function get_contract_owner() public view returns(address) {
         return MiningOwner;
     }
 
-    function get_mining_balance() public view returns(uint256){
-        return IMSN(MSNAddr).balanceOf(MiningOwner);
+    function get_contract_balance() public view returns(uint256){
+        return IMSN(MSNAddr).balanceOf(address(this));
+    }
+
+    event withdraw_contract_EVENT (address _from ,address _to ,uint256 amount,uint time);
+    function withdraw_contract() public onlyMiningOwner {
+        uint256 left = IERC20(MSNAddr).balanceOf(address(this));
+        require(left > 0, "No Balance");
+        IERC20(MSNAddr).transfer(msg.sender, left);
+        emit withdraw_contract_EVENT(address(this),msg.sender,left,block.timestamp);
     }
 
 
-    //cookie is the identifier of some off chain user
-    event transfer_to_webtoken_EVENT(string indexed cookie,address indexed _from , address indexed _to, uint256 amount);
-    function transfer_to_webtoken(string calldata cookie,uint256 amount) external returns (bool) {
-        bool dresult= IMSN(MSNAddr).transfer_to_maintainer(MiningOwner,amount);
-        if(dresult){
-            emit transfer_to_webtoken_EVENT(cookie,msg.sender,MiningOwner,amount);
+    event add_merkle_root_EVENT(bytes32 merkleRoot,uint blocktime);
+    function  add_merkle_root(bytes32 merkleRoot,uint256 amount) public onlyMiningOwner{
+         require(merkleRoots[merkleRoot]==0, "Already Exist");
+         merkleRoots[merkleRoot]=amount+1;//+1 for never to 0 again
+         emit add_merkle_root_EVENT(merkleRoot,merkleRoots[merkleRoot]);
+    }
+
+
+    function get_merkle_root(bytes32 merkleRoot) public  view returns(uint256) {
+        return merkleRoots[merkleRoot];
+    }
+
+
+    event claim_erc20_EVENT(bytes32 merkleRoot,address to, uint256 amount, uint time );
+    function claim_erc20(bytes32 merkleRoot,uint256 index, uint256 amount, bytes32[] calldata merkleProof) external{
+        require(merkleRoots[merkleRoot]!=0, "merkleRoot Not Exist");
+        require(claimed[merkleRoot][index]==false, "Already Claimed");
+
+        bytes32 leaf = keccak256(abi.encodePacked(index, msg.sender, amount));
+        require(MerkleProof.verify(merkleProof, merkleRoot, leaf), 'Not Verified');
+
+        require(merkleRoots[merkleRoot]>amount, "Not Enough Balance");
+        merkleRoots[merkleRoot]=merkleRoots[merkleRoot]-amount;
+        bool result=IERC20(MSNAddr).transfer(msg.sender, amount);
+        if(result){
+            claimed[merkleRoot][index]=true;
+            emit claim_erc20_EVENT(merkleRoot,msg.sender, amount,block.timestamp);
         }
-        return dresult;
     }
-
-    
-    // function claim_erc20(uint256 index, uint256 amount, bytes32[] calldata merkleProof) external{
-
-    // }
  
 }
