@@ -12,7 +12,7 @@ contract MSN is ERC20 {
     // maintainer address => (deposit address=> amout)
     mapping(address=>mapping(address=>uint256)) deposit ;
     // maintainer address => (deposit address=> lastupdate_time)  
-    mapping(address=>mapping(address=>uint)) deposit_lastime;
+    mapping(address=>mapping(address=>uint256)) deposit_lastime;
 
     //maintainer is the person who maintains the contract 
     //like 'mining pool','DAO','poolx',etc
