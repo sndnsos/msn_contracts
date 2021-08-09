@@ -113,12 +113,12 @@ contract DAO {
 
 
 
-    event remove_deposit_EVENT (address _from, uint256 amount);
-    function remove_deposit(uint256 amount) external {
+    event withdraw_deposit_EVENT (address _from, uint256 amount);
+    function withdraw_deposit(uint256 amount) external {
         uint lastdt = IMSN(MSNAddr).deposit_lasttime(address(this), msg.sender);
         require(lastdt+withdraw_keep_secs >block.timestamp,"Not Enough Time" );
         IMSN(MSNAddr).withdraw_from_maintainer(msg.sender,amount);
-        emit remove_deposit_EVENT(msg.sender,amount);
+        emit withdraw_deposit_EVENT(msg.sender,amount);
     }
 
     event vote_EVENT (string _proposal_name,address _voter,uint8 _option);
