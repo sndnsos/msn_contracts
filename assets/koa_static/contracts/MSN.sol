@@ -9,9 +9,15 @@ contract MSN is ERC20 {
     address contractOwner;
     bool exchange_open;  
 
+    // maintainer address => (deposit address=> amout)
+    mapping(address=>mapping(address=>uint256)) deposit ;
+    // maintainer address => (deposit address=> lastupdate_time)  
+    mapping(address=>mapping(address=>uint)) deposit_lastime;
+
     //maintainer is the person who maintains the contract 
     //like 'mining pool','DAO','poolx',etc
     mapping(address=>string) maintainers;
+    
 
     modifier onlyContractOwner() {
         require(msg.sender == contractOwner, 'only contractOwner');
@@ -23,9 +29,14 @@ contract MSN is ERC20 {
         _;
     }
 
+     modifier onlyMaintainer() {
+        require(bytes(maintainers[msg.sender]).length!=0, 'only Maintainer');
+        _;
+    }
+
+
     modifier MaintainerORExchangeOpen() {
-        require(exchange_open == true || (bytes(maintainers[msg.sender]).length!=0 ), 
-        'exchange closed && not contractOwner');
+        require(exchange_open == true || (bytes(maintainers[msg.sender]).length!=0 ), 'exchange closed && not contractOwner');
         _;
     }
 
@@ -74,19 +85,41 @@ contract MSN is ERC20 {
 
 
 
-    event transfer_to_maintainer_EVENT(string indexed cookie,address indexed _to,address indexed _from, uint256 amount,uint time);
-    function transfer_to_maintainer(address maintainer_addr,uint256 amount,string calldata cookie) external returns (bool) {
+    event deposit_to_maintainer_EVENT(string indexed cookie,address indexed maintainer_addr,address indexed _from, uint256 amount,uint time);
+    function deposit_to_maintainer(address maintainer_addr,uint256 amount,string calldata cookie) external returns (bool) {
         require(bytes(maintainers[maintainer_addr]).length!=0, "NO SUCH MAINTAINER");
         bool result= super.transfer(maintainer_addr, amount);
         if(result){
-                emit transfer_to_maintainer_EVENT(cookie,maintainer_addr,msg.sender,amount,block.timestamp);
+                deposit[maintainer_addr][msg.sender]=deposit[maintainer_addr][msg.sender]+amount;
+                deposit_lastime[maintainer_addr][msg.sender]=block.timestamp;
+                emit deposit_to_maintainer_EVENT(cookie,maintainer_addr,msg.sender,amount,block.timestamp);
         }
         return result;
     }
 
-    
+    //can only called by maintainer
+    event withdraw_from_maintainer_EVENT(address indexed maintainer_addr,address indexed recipient,uint256 amount,uint time);
+    function  withdraw_from_maintainer(address recipient,uint256 amount) external onlyMaintainer returns (bool){
+        require(deposit[msg.sender][recipient] >= amount, 'withdraw overflow');
+        bool result= super.transfer(recipient, amount);
+        if(result){
+                deposit[msg.sender][recipient]=deposit[msg.sender][recipient]-amount;
+                emit withdraw_from_maintainer_EVENT(msg.sender,recipient,amount,block.timestamp);
+        }
+        return result;
+    }
+
+
+    function deposit_amount(address maintainer_addr, address from) external view returns(uint256){
+        return deposit[maintainer_addr][from];
+    }
+
+    function deposit_lasttime(address maintainer_addr, address from) external view returns(uint){
+        return deposit_lastime[maintainer_addr][from];
+    }
+
+
     ////////end of maintainer part///////////////////
- 
 
     //mint is open for mining Inflation increment
     function mint(uint256 amount) public onlyContractOwner {

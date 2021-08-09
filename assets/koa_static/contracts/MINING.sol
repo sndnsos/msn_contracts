@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/cryptography/MerkleProof.sol";  
 
 interface IMSN is IERC20{
-    function transfer_to_maintainer(address maintainer_addr,uint256 amount) external returns (bool);
+     function  withdraw_from_maintainer(address recipient,uint256 amount) external returns (bool);
 }
 
 contract MINING {
@@ -19,19 +19,16 @@ contract MINING {
     mapping(bytes32 => mapping(uint256 => bool)) claimed; //bytes32 merkleRoot => (index => true|false)
      
 
-    constructor(string memory _name){
+    constructor(string memory _name,address _MSNcontractAddr){
        MiningOwner = msg.sender;    
        name=_name; 
+       MSNAddr = _MSNcontractAddr;
     }
 
 
     modifier onlyMiningOwner() {
         require(msg.sender == MiningOwner, 'only MiningOwner');
         _;
-    }
-
-    function set_msn_addr(address _contractAddr) public  onlyMiningOwner {
-       MSNAddr = _contractAddr;
     }
 
     function get_msn_addr() public view returns(address) {
@@ -78,7 +75,7 @@ contract MINING {
 
         require(merkleRoots[merkleRoot]>amount, "Not Enough Balance");
         merkleRoots[merkleRoot]=merkleRoots[merkleRoot]-amount;
-        bool result=IERC20(MSNAddr).transfer(msg.sender, amount);
+        bool result=IMSN(MSNAddr).withdraw_from_maintainer(msg.sender, amount);
         if(result){
             claimed[merkleRoot][index]=true;
             emit claim_erc20_EVENT(merkleRoot,msg.sender, amount,block.timestamp);
