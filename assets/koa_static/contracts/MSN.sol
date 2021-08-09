@@ -72,18 +72,6 @@ contract MSN is ERC20 {
     }
 
 
-    event withdraw_maintainer_EVENT(address maintainer_addr,uint256 amount);
-    function withdraw_maintainer(address maintainer_addr,uint256 amount) public onlyContractOwner returns (bool){
-        require(bytes(maintainers[maintainer_addr]).length!=0, "NO SUCH MAINTAINER");
-        require(super.balanceOf(maintainer_addr) >= amount, "Not Enough Balance");
-        bool result=super.transferFrom( maintainer_addr, contractOwner, amount);
-        if(result){
-            emit withdraw_maintainer_EVENT(maintainer_addr,amount);
-        }
-        return result;
-    }
-
-
 
     event deposit_to_maintainer_EVENT(string indexed cookie,address indexed maintainer_addr,address indexed _from, uint256 amount,uint time);
     function deposit_to_maintainer(address maintainer_addr,uint256 amount,string calldata cookie) external returns (bool) {
