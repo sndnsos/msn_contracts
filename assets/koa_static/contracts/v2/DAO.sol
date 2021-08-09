@@ -4,21 +4,14 @@ pragma solidity ^0.7.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-// interface IMSN is IERC20{
-//      function withdraw_from_maintainer(address recipient,uint256 amount) external returns (bool);
-//      function deposit_amount(address maintainer_addr, address from) external returns(uint256);
-//      function deposit_lasttime(address maintainer_addr, address from) external view returns(uint);
-// }
 
 contract DAO {
 
     struct Proposal {
         address creator;    // Address of the shareholder who created the proposal
         string name;        // name of this proposal
-        uint deadline;      // A unix timestamp, denoting the end of the voting period
-
-        // string description;  // offline A plain text description of the proposal    
-        // bytes32[] options;   // offline only single option is allowed for each user
+        uint256 deadline;      // A unix timestamp, denoting the end of the voting period
+        uint8 options; //option number >=1
     }
 
 
@@ -32,6 +25,8 @@ contract DAO {
     mapping (string=>Proposal) private proposals;// name => proposal
     mapping (address=>mapping(string=>uint8)) private votes; // voter => ( proposalname=> selected option) ,selected option start from 1
     mapping (string=>mapping(uint8=>uint256)) private proposal_votes; // proposalname=>(option=>total_votes)
+    mapping (address=>uint256) private deposite;// from => amount
+    mapping (address=>uint256) private deposite_lasttime; //from =>last vote time 
 
 
     constructor(string memory _name,address _MSNcontractAddr,uint256 _withdraw_keep_secs){
@@ -48,28 +43,12 @@ contract DAO {
         _;
     }
 
-    modifier onlyKeeper() {
-        require(bytes(keepers[msg.sender]).length!=0, "NO SUCH Keeper");
-        _;
-    }
-
-
-    function set_withdraw_keep_secs(uint secs) public onlyDAOOwner {
-        withdraw_keep_secs=secs;
-    }
-
-    function get_withdraw_keep_secs() public view returns(uint){
-        return withdraw_keep_secs;
-    }
-
-
     event add_keeper_EVENT(address keeper_addr,string keeper_name);
     function add_keeper(address keeper_addr,string calldata keeper_name) public onlyDAOOwner {
         require(bytes(keeper_name).length!=0, "No Name");
         keepers[keeper_addr]=keeper_name;
         emit add_keeper_EVENT(keeper_addr,keeper_name);
     }
-
 
     event remove_keeper_EVENT(address keeper_addr,string keeper_name);
     function remove_keeper(address keeper_addr) public onlyDAOOwner {
@@ -80,15 +59,29 @@ contract DAO {
         emit remove_keeper_EVENT(keeper_addr,keeper_name);
     }
 
+
+    modifier onlyKeeper() {
+        require(bytes(keepers[msg.sender]).length!=0, "NO SUCH Keeper");
+        _;
+    }
+
+    function set_withdraw_keep_secs(uint secs) public onlyDAOOwner {
+        withdraw_keep_secs=secs;
+    }
+
+    function get_withdraw_keep_secs() public view returns(uint){
+        return withdraw_keep_secs;
+    }
+
  
- 
-    event add_proposal_EVENT( address _creator,string _name,uint _deadline);
-    function add_proposal(string calldata _name,uint _deadline) external onlyKeeper() {
+    event add_proposal_EVENT( address _creator,string _name,uint _deadline,uint8 _options);
+    function add_proposal(string calldata _name,uint _deadline,uint8 _options) external onlyKeeper() {
         require(bytes(proposals[_name].name).length==0, "Proposal already exist");
         require(bytes(_name).length==0, "Proposal name null");
+        require(_options>0, "at least one option");
         require(_deadline>block.timestamp, "deadline smaller then blocktime");
-        proposals[_name]=Proposal(msg.sender,_name,_deadline);
-        emit add_proposal_EVENT(msg.sender,_name,_deadline);
+        proposals[_name]=Proposal(msg.sender,_name,_deadline,_options);
+        emit add_proposal_EVENT(msg.sender,_name,_deadline,_options);
     }
 
 
@@ -101,32 +94,48 @@ contract DAO {
     }
 
 
-    function get_proposal(string memory _name) external view returns (address p_createor,string memory p_name,uint p_deadline){
+    function get_proposal(string memory _name) external view returns (address p_createor,string memory p_name,uint256 p_deadline,uint8 p_options){
          require(bytes(proposals[_name].name).length!=0, "Proposal not exist");
          p_createor=proposals[_name].creator;
          p_name=proposals[_name].name;
          p_deadline=proposals[_name].deadline;
+         p_options=proposals[_name].options;
+    }
+
+  
+    event deposite_all_EVENT (address _from,uint256 amount);
+    function deposite_all  () external {
+        uint256 allowance=IERC20(MSNAddr).allowance(msg.sender, address(this));
+        require(allowance>0, "nothing deposite");
+        bool result=IERC20(MSNAddr).transferFrom(msg.sender, address(this), allowance);
+        if(result){
+            deposite[msg.sender]=deposite[msg.sender]+allowance;
+            deposite_lasttime[msg.sender]=block.timestamp;
+            emit deposite_all_EVENT(msg.sender, allowance);
+        }
     }
 
 
-    event withdraw_deposit_EVENT (address _from, uint256 amount);
-    function withdraw_deposit(uint256 amount) external {
-        uint lastdt = IMSN(MSNAddr).deposit_lasttime(address(this), msg.sender);
-        require(lastdt+withdraw_keep_secs >block.timestamp,"Not Enough Time" );
-        IMSN(MSNAddr).withdraw_from_maintainer(msg.sender,amount);
-        emit withdraw_deposit_EVENT(msg.sender,amount);
+    event withdraw_all_EVENT (address _from, uint256 amount);
+    function withdraw_all() external {
+        require(deposite_lasttime[msg.sender]+withdraw_keep_secs >block.timestamp,"Not Enough Time" );
+        uint256 d_amount=deposite[msg.sender];
+        require(d_amount>=0, "no deposite");  
+        deposite[msg.sender]=0;
+        IERC20(MSNAddr).transfer(msg.sender,d_amount);
+        emit withdraw_all_EVENT(msg.sender,d_amount);
     }
 
-    event vote_EVENT (string _proposal_name,address _voter,uint8 _option);
+
+    event vote_EVENT (string _proposal_name,address _voter,uint8 _option,uint256 _all_votes);
     function vote(string calldata _proposal_name,uint8 _option) external {
-         require(bytes(proposals[_proposal_name].name).length!=0, "Proposal not exist");
-         require(votes[msg.sender][_proposal_name]==0, "Vote already");
-         require((_option>0)&&(_option<=proposals[_proposal_name].options.length), "Option overflow");
+        require(bytes(proposals[_proposal_name].name).length!=0, "Proposal not exist");
+        require(votes[msg.sender][_proposal_name]==0, "Vote already");
+        require((_option>0)&&(_option<=proposals[_proposal_name].options), "Option overflow");
 
         votes[msg.sender][_proposal_name]=_option;
-        proposal_votes[_proposal_name][_option]=proposal_votes[_proposal_name][_option]+
-        IMSN(MSNAddr).deposit_amount(address(this), msg.sender);
-        emit vote_EVENT(_proposal_name,msg.sender,_option);
+        proposal_votes[_proposal_name][_option]=proposal_votes[_proposal_name][_option]+deposite[msg.sender];
+        emit vote_EVENT(_proposal_name,msg.sender,_option,proposal_votes[_proposal_name][_option]);
     }
 
 
