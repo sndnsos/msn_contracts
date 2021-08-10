@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL v3
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -22,8 +22,8 @@ contract DAO {
     mapping(string => Proposal) private proposals; // name => proposal
     mapping(address => mapping(string => uint8)) private votes; // voter => ( proposalname=> selected option) ,selected option start from 1
     mapping(string => mapping(uint8 => uint256)) private proposal_votes; // proposalname=>(option=>total_votes)
-    mapping(address => uint256) private deposite; // from => amount
-    mapping(address => uint256) private deposite_lasttime; //from =>last vote time
+    mapping(address => uint256) private deposit; // from => amount
+    mapping(address => uint256) private deposit_lasttime; //from =>last vote time
 
     constructor(
         string memory _name,
@@ -143,8 +143,8 @@ contract DAO {
             allowance
         );
         if (result) {
-            deposite[msg.sender] = deposite[msg.sender] + allowance;
-            deposite_lasttime[msg.sender] = block.timestamp;
+            deposit[msg.sender] = deposit[msg.sender] + allowance;
+            deposit_lasttime[msg.sender] = block.timestamp;
             emit deposite_all_EVENT(msg.sender, allowance);
         }
     }
@@ -153,13 +153,13 @@ contract DAO {
 
     function withdraw_all() external {
         require(
-            deposite_lasttime[msg.sender] + withdraw_keep_secs >
+            deposit_lasttime[msg.sender] + withdraw_keep_secs >
                 block.timestamp,
             "Not Enough Time"
         );
-        uint256 d_amount = deposite[msg.sender];
+        uint256 d_amount = deposit[msg.sender];
         require(d_amount >= 0, "no deposite");
-        deposite[msg.sender] = 0;
+        deposit[msg.sender] = 0;
         IERC20(MSNAddr).transfer(msg.sender, d_amount);
         emit withdraw_all_EVENT(msg.sender, d_amount);
     }
@@ -185,7 +185,7 @@ contract DAO {
         votes[msg.sender][_proposal_name] = _option;
         proposal_votes[_proposal_name][_option] =
             proposal_votes[_proposal_name][_option] +
-            deposite[msg.sender];
+            deposit[msg.sender];
         emit vote_EVENT(
             _proposal_name,
             msg.sender,
