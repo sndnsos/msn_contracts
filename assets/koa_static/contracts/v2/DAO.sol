@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL v3
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -153,7 +153,7 @@ contract DAO {
 
     function withdraw_all() external {
         require(
-            deposite_lasttime[msg.sender] + withdraw_keep_secs >
+            deposite_lasttime[msg.sender] + withdraw_keep_secs <
                 block.timestamp,
             "Not Enough Time"
         );
