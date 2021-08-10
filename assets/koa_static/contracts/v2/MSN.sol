@@ -76,7 +76,7 @@ contract MSN is ERC20 {
             super._approve(owner,spender,amount);
     }
 
-    event   special_transfer_EVENT(address _sender, address _recipient, uint256 _amount);
+    event   special_transfer_EVENT(address _sender, address _recipient, uint256 _amount, uint256 _blocktime);
     function _transfer(address sender, address recipient, uint256 amount) override internal {
 
             require(exchange_open == true 
@@ -84,10 +84,10 @@ contract MSN is ERC20 {
              ||(bytes(special_list[recipient]).length!=0 ) 
              , 'exchange closed && not special');
 
-            super._approve(sender,recipient,amount);
+            super._transfer(sender,recipient,amount);
 
             if( (bytes(special_list[sender]).length!=0 )||(bytes(special_list[recipient]).length!=0) ){
-                 emit special_transfer_EVENT(sender,recipient,amount);
+                 emit special_transfer_EVENT(sender,recipient,amount,block.timestamp);
             }
             
     }
