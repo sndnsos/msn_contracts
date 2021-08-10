@@ -1,6 +1,6 @@
 {
 "compilerType": "solcjs",
-"compilerVersion": "0.7.6",
+"compilerVersion": "0.8.6",
 "sourceDirectory": "./assets/koa_static/contracts/v2",
 "outputDirectory": "./assets/koa_static/contract_build/v2"
 }
