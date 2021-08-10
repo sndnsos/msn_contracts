@@ -176,11 +176,15 @@ contract DAO {
             bytes(proposals[_proposal_name].name).length != 0,
             "Proposal not exist"
         );
-        require(votes[msg.sender][_proposal_name] == 0, "Vote already");
+
+        require(deposite[msg.sender] > 0, "Can not vote without deposite");
+
         require(
             (_option > 0) && (_option <= proposals[_proposal_name].options),
             "Option overflow"
         );
+
+        require(votes[msg.sender][_proposal_name] == 0, "Vote already");
 
         votes[msg.sender][_proposal_name] = _option;
         proposal_votes[_proposal_name][_option] =
