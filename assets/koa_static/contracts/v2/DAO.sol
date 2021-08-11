@@ -5,22 +5,21 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
 contract DAO {
-
     struct Proposal {
-        uint16  pid;//proposal identifier
+        uint16 pid; //proposal identifier
         address creator; // Address of the shareholder who created the proposal
         uint256 startTime; // A unix timestamp, denoting the start of the voting period
         uint256 endTime; // A unix timestamp, denoting the end of the voting period
-        mapping(uint8 => uint256) proposal_votes;//(option=>total_votes)
     }
 
-    address private ProposalUrl; // the detailed proposal description is inside this url 
+    mapping (uint16=>mapping(uint8 => uint256)) proposal_votes; // pid => (option=>total_votes)
+
+    address private ProposalUrl; // the detailed proposal description is inside this url
     address private DAOOwner;
     address private MSNAddr;
 
-    uint256 withdraw_keep_secs; // how much time in seconds to keep before withdraw
+    uint256 voter_keep_secs; // how much time in seconds to keep before voter withdraw
     mapping(address => string) private keepers; // how can create and manage proposals
 
     mapping(uint16 => Proposal) private proposals; // pid => proposal
@@ -28,14 +27,11 @@ contract DAO {
     mapping(address => uint256) private deposit; // from => amount
     mapping(address => uint256) private deposit_lasttime; //from =>last vote time
 
-    constructor(
-        address _MSNcontractAddr,
-        uint256 _withdraw_keep_secs
-    ) {
+    constructor(address _MSNcontractAddr, uint256 _voter_keep_secs) {
         DAOOwner = msg.sender;
         MSNAddr = _MSNcontractAddr;
         keepers[msg.sender] = "DAOOwner";
-        withdraw_keep_secs = _withdraw_keep_secs;
+        voter_keep_secs = _voter_keep_secs;
     }
 
     modifier onlyDAOOwner() {
@@ -43,15 +39,36 @@ contract DAO {
         _;
     }
 
-    event set_DAOOwner_EVENT(address oldOwner,address newOwner);
-    function set_DAOOwner(address _newOwner) external onlyDAOOwner(){
-        require(_newOwner!=DAOOwner,"newOwner must not be old");
-        DAOOwner=_newOwner;
-        emit set_DAOOwner_EVENT(DAOOwner,_newOwner);
+    event set_DAOOwner_EVENT(address oldOwner, address newOwner);
+
+    function set_DAOOwner(address _newOwner) external onlyDAOOwner {
+        require(_newOwner != DAOOwner, "newOwner must not be old");
+        DAOOwner = _newOwner;
+        emit set_DAOOwner_EVENT(DAOOwner, _newOwner);
     }
 
-    function get_DAOOwner() external view returns (address){
+    function get_DAOOwner() external view returns (address) {
         return DAOOwner;
+    }
+
+
+    event withdraw_contract_EVENT(
+        address _from,
+        address _to,
+        uint256 amount,
+        uint256 time
+    );
+
+    function withdraw_contract() public onlyDAOOwner {
+        uint256 left = IERC20(MSNAddr).balanceOf(address(this));
+        require(left > 0, "No Balance");
+        IERC20(MSNAddr).transfer(msg.sender, left);
+        emit withdraw_contract_EVENT(
+            address(this),
+            msg.sender,
+            left,
+            block.timestamp
+        );
     }
 
 
@@ -81,46 +98,46 @@ contract DAO {
         _;
     }
 
-    function set_withdraw_keep_secs(uint256 secs) public onlyDAOOwner {
-        withdraw_keep_secs = secs;
+    function set_voter_keep_secs(uint256 secs) public onlyDAOOwner {
+        voter_keep_secs = secs;
     }
 
-    function get_withdraw_keep_secs() public view returns (uint256) {
-        return withdraw_keep_secs;
+    function get_voter_keep_secs() public view returns (uint256) {
+        return voter_keep_secs;
     }
-
 
     event add_proposal_EVENT(
-        uint16  _pid,
+        uint16 _pid,
         address _creator,
         uint256 _startTime,
         uint256 _endTime
     );
 
     function add_proposal(
-        uint16  _pid,
-        address _creator,
+        uint16 _pid,
         uint256 _startTime,
         uint256 _endTime
     ) external onlyKeeper {
+        require(proposals[_pid].pid != 0, "Proposal already exist");
         require(
-            proposals[_pid].pid,
-            "Proposal already exist"
+            _endTime > block.timestamp,
+            "_endTime must bigger then blocktime"
         );
-        require(_endTime > block.timestamp, "_endTime must bigger then blocktime");
-        require(_startTime < _endTime, "startTime must be smaller then _endTime");
-        proposals[_pid] = Proposal(_pid,msg.sender, _startTime,_endTime);
-        emit add_proposal_EVENT(_pid,msg.sender, _startTime,_endTime);
+        require(
+            _startTime < _endTime,
+            "startTime must be smaller then _endTime"
+        );
+        proposals[_pid] = Proposal(_pid, msg.sender, _startTime, _endTime);
+        emit add_proposal_EVENT(_pid, msg.sender, _startTime, _endTime);
     }
 
     event remove_proposal_EVENT(address _from, uint16 _pid);
 
     function remove_proposal(uint16 _pid) external onlyKeeper {
-        require(proposals[_pid].pid, "Proposal not exist");
+        require(proposals[_pid].pid != 0, "Proposal not exist");
         require(
-                (proposals[_pid].creator == msg.sender) ||
-                (msg.sender == DAOOwner),
-                "Not Allowed"
+            (proposals[_pid].creator == msg.sender) || (msg.sender == DAOOwner),
+            "Not Allowed"
         );
         delete proposals[_pid];
         emit remove_proposal_EVENT(msg.sender, _pid);
@@ -130,14 +147,19 @@ contract DAO {
         external
         view
         returns (
-                uint16,
-                address,
-                uint256,
-                uint256
+            uint16,
+            address,
+            uint256,
+            uint256
         )
     {
-        require(proposals[_pid].pid, "Proposal not exist");
-        return (_pid,proposals[_pid].creator,proposals[_pid].startTime,proposals[_pid].endTime);
+        require(proposals[_pid].pid != 0, "Proposal not exist");
+        return (
+            _pid,
+            proposals[_pid].creator,
+            proposals[_pid].startTime,
+            proposals[_pid].endTime
+        );
     }
 
     event deposit_all_EVENT(address _from, uint256 amount);
@@ -160,19 +182,18 @@ contract DAO {
         }
     }
 
-    event withdraw_all_EVENT(address _from, uint256 amount);
+    event voter_withdraw_all_EVENT(address _from, uint256 amount);
 
-    function withdraw_all() external {
+    function voter_withdraw_all() external {
         require(
-            deposit_lasttime[msg.sender] + withdraw_keep_secs <
-                block.timestamp,
+            deposit_lasttime[msg.sender] + voter_keep_secs < block.timestamp,
             "Not Enough Time"
         );
         uint256 d_amount = deposit[msg.sender];
         require(d_amount > 0, "no deposit");
         deposit[msg.sender] = 0;
         IERC20(MSNAddr).transfer(msg.sender, d_amount);
-        emit withdraw_all_EVENT(msg.sender, d_amount);
+        emit voter_withdraw_all_EVENT(msg.sender, d_amount);
     }
 
     event vote_EVENT(
@@ -183,38 +204,30 @@ contract DAO {
         uint256 _vote_time
     );
 
-
     function vote(uint16 _pid, uint8 _option) external {
-        require(
-            proposals[_pid].pid,
-            "Proposal not exist"
-        );
+        require(proposals[_pid].pid != 0, "Proposal not exist");
 
         require(deposit[msg.sender] > 0, "Can not vote without deposit");
         require(votes[msg.sender][_pid] == 0, "Vote already");
 
         votes[msg.sender][_pid] = _option;
-        proposals[_pid][_option]= proposals[_pid][_option]+deposit[msg.sender];
+        proposal_votes[_pid][_option] =proposal_votes[_pid][_option] + deposit[msg.sender];
 
         emit vote_EVENT(
             _pid,
             msg.sender,
             _option,
-            proposals[_pid][_option],
+            proposal_votes[_pid][_option],
             block.timestamp
         );
     }
-
 
     function get_proposal_votes(uint16 _pid, uint8 _option)
         external
         view
         returns (uint256)
     {
-        require(
-            proposals[_pid].pid,
-            "Proposal not exist"
-        );
-        return proposals[_pid][_option];
+        require(proposals[_pid].pid != 0, "Proposal not exist");
+        return proposal_votes[_pid][_option];
     }
 }

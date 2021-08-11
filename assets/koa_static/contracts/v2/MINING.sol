@@ -6,16 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract MINING {
-    string public name;
     address private MSNAddr;
     address private MiningOwner;
 
     mapping(bytes32 => uint256) merkleRoots; // merkleRoot=>balance
     mapping(bytes32 => mapping(uint256 => bool)) claimed; //bytes32 merkleRoot => (index => true|false)
 
-    constructor(string memory _name, address _MSNcontractAddr) {
+    constructor(address _MSNcontractAddr) {
         MiningOwner = msg.sender;
-        name = _name;
         MSNAddr = _MSNcontractAddr;
     }
 
@@ -24,12 +22,20 @@ contract MINING {
         _;
     }
 
-    function get_msn_addr() public view returns (address) {
-        return MSNAddr;
+    event set_MiningOwner_EVENT(address oldOwner, address newOwner);
+
+    function set_MiningOwner(address _newOwner) external onlyMiningOwner {
+        require(_newOwner != MiningOwner, "newOwner must not be old");
+        MiningOwner = _newOwner;
+        emit set_MiningOwner_EVENT(MiningOwner, _newOwner);
     }
 
-    function get_contract_owner() public view returns (address) {
+    function get_MiningOwner() external view returns (address) {
         return MiningOwner;
+    }
+
+    function get_msn_addr() public view returns (address) {
+        return MSNAddr;
     }
 
     function get_contract_balance() public view returns (uint256) {
