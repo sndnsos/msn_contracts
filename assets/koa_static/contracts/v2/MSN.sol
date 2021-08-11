@@ -58,13 +58,19 @@ contract MSN is ERC20 {
     }
 
     //mint is open for mining Inflation increment
+    event mint_EVENT(address _from, uint256 amount);
+
     function mint(uint256 amount) public onlyContractOwner {
         _mint(msg.sender, amount);
+        emit mint_EVENT(msg.sender, amount);
     }
 
     //anyone can burn hisown token
-    function burn(uint256 amount) public {
+    event burn_EVENT(address _from, uint256 amount);
+
+    function burn(uint256 amount) external {
         _burn(msg.sender, amount);
+        emit burn_EVENT(msg.sender, amount);
     }
 
     function set_exchange_open(bool _exchange_open) external onlyContractOwner {
