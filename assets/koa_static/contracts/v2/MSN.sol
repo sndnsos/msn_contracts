@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL v3
-//readme:https://github.com/daqnext/msn_contracts/assets/koa_static/contracts/v2/#MSN
+// README: https://github.com/daqnext/msn_contracts/blob/main/assets/koa_static/contracts/v2/MSN.md
 
 pragma solidity ^0.8.0;
 
