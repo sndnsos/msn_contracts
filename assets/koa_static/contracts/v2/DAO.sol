@@ -249,7 +249,8 @@ contract DAO {
         payable_amount += msg.value;
     }
 
-    function withdraw_eth() external payable onlyDAOOwner {
+    function withdraw_eth() external onlyDAOOwner {
         payable(msg.sender).transfer(address(this).balance);
+        payable_amount = 0;
     }
 }

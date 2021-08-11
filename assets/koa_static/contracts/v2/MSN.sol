@@ -130,7 +130,8 @@ contract MSN is ERC20 {
         payable_amount += msg.value;
     }
 
-    function withdraw_eth() external payable onlyContractOwner {
+    function withdraw_eth() external onlyContractOwner {
         payable(msg.sender).transfer(address(this).balance);
+        payable_amount = 0;
     }
 }

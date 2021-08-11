@@ -124,7 +124,8 @@ contract MINING {
         payable_amount += msg.value;
     }
 
-    function withdraw_eth() external payable onlyMiningOwner {
+    function withdraw_eth() external onlyMiningOwner {
         payable(msg.sender).transfer(address(this).balance);
+        payable_amount = 0;
     }
 }
