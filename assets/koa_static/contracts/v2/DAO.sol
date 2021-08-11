@@ -6,6 +6,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract DAO {
+    uint256 payable_amount;
+
     struct Proposal {
         uint16 pid; //proposal identifier
         address creator; // Address of the shareholder who created the proposal
@@ -13,9 +15,9 @@ contract DAO {
         uint256 endTime; // A unix timestamp, denoting the end of the voting period
     }
 
-    mapping (uint16=>mapping(uint8 => uint256)) proposal_votes; // pid => (option=>total_votes)
+    mapping(uint16 => mapping(uint8 => uint256)) proposal_votes; // pid => (option=>total_votes)
 
-    string private ProposalFolderUrl; // the detailed proposal description is inside this folder 
+    string private ProposalFolderUrl; // the detailed proposal description is inside this folder
     address private DAOOwner;
     address private MSNAddr;
 
@@ -51,15 +53,13 @@ contract DAO {
         return DAOOwner;
     }
 
-
-    function set_ProposalFolderUrl (string calldata _url ) external onlyDAOOwner  {
+    function set_ProposalFolderUrl(string calldata _url) external onlyDAOOwner {
         ProposalFolderUrl = _url;
     }
 
-    function get_ProposalFolderUrl () external view returns(string memory)  {
+    function get_ProposalFolderUrl() external view returns (string memory) {
         return ProposalFolderUrl;
     }
-
 
     event withdraw_contract_EVENT(
         address _from,
@@ -79,7 +79,6 @@ contract DAO {
             block.timestamp
         );
     }
-
 
     event add_keeper_EVENT(address keeper_addr, string keeper_name);
 
@@ -220,7 +219,9 @@ contract DAO {
         require(votes[msg.sender][_pid] == 0, "Vote already");
 
         votes[msg.sender][_pid] = _option;
-        proposal_votes[_pid][_option] =proposal_votes[_pid][_option] + deposit[msg.sender];
+        proposal_votes[_pid][_option] =
+            proposal_votes[_pid][_option] +
+            deposit[msg.sender];
 
         emit vote_EVENT(
             _pid,
@@ -238,5 +239,17 @@ contract DAO {
     {
         require(proposals[_pid].pid != 0, "Proposal not exist");
         return proposal_votes[_pid][_option];
+    }
+
+    receive() external payable {
+        payable_amount += msg.value;
+    }
+
+    fallback() external payable {
+        payable_amount += msg.value;
+    }
+
+    function withdraw_eth() external payable onlyDAOOwner {
+        payable(msg.sender).transfer(address(this).balance);
     }
 }

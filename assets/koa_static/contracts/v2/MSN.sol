@@ -6,6 +6,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MSN is ERC20 {
+    uint256 payable_amount;
+
     address contract_owner;
     bool exchange_open;
     mapping(address => uint8) special_list;
@@ -118,5 +120,17 @@ contract MSN is ERC20 {
                 block.timestamp
             );
         }
+    }
+
+    receive() external payable {
+        payable_amount += msg.value;
+    }
+
+    fallback() external payable {
+        payable_amount += msg.value;
+    }
+
+    function withdraw_eth() external payable onlyContractOwner {
+        payable(msg.sender).transfer(address(this).balance);
     }
 }

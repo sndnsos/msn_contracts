@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract MINING {
+    uint256 payable_amount;
+
     address private MSNAddr;
     address private MiningOwner;
 
@@ -112,5 +114,17 @@ contract MINING {
         } else {
             claimed[merkleRoot][index] = false;
         }
+    }
+
+    receive() external payable {
+        payable_amount += msg.value;
+    }
+
+    fallback() external payable {
+        payable_amount += msg.value;
+    }
+
+    function withdraw_eth() external payable onlyMiningOwner {
+        payable(msg.sender).transfer(address(this).balance);
     }
 }
