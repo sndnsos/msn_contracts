@@ -15,7 +15,7 @@ contract DAO {
 
     mapping (uint16=>mapping(uint8 => uint256)) proposal_votes; // pid => (option=>total_votes)
 
-    address private ProposalUrl; // the detailed proposal description is inside this url
+    string private ProposalFolderUrl; // the detailed proposal description is inside this folder 
     address private DAOOwner;
     address private MSNAddr;
 
@@ -49,6 +49,15 @@ contract DAO {
 
     function get_DAOOwner() external view returns (address) {
         return DAOOwner;
+    }
+
+
+    function set_ProposalFolderUrl (string calldata _url ) external onlyDAOOwner  {
+        ProposalFolderUrl = _url;
+    }
+
+    function get_ProposalFolderUrl () external view returns(string memory)  {
+        return ProposalFolderUrl;
     }
 
 
