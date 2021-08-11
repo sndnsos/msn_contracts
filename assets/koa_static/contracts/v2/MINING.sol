@@ -104,6 +104,17 @@ contract MINING {
         emit add_merkle_root_EVENT(merkleRoot, merkleRoots[merkleRoot]);
     }
 
+    event remove_merkle_root_EVENT(
+        address _from,
+        bytes32 merkleRoot,
+        uint256 blocktime
+    );
+
+    function remove_merkle_root(bytes32 merkleRoot) external onlyMiningOwner {
+        delete merkleRoots[merkleRoot];
+        emit remove_merkle_root_EVENT(msg.sender, merkleRoot, block.timestamp);
+    }
+
     function get_merkle_root(bytes32 merkleRoot) public view returns (uint256) {
         return merkleRoots[merkleRoot];
     }
