@@ -12,6 +12,7 @@ contract DAO {
         uint8 options; //option number >=1
     }
 
+
     string public name;
     address private DAOOwner;
     address private MSNAddr;

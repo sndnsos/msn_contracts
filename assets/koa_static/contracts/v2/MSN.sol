@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL v3
+//readme:https://github.com/daqnext/msn_contracts/assets/koa_static/contracts/v2/#MSN
 
 pragma solidity ^0.8.0;
 
@@ -7,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract MSN is ERC20 {
     address contract_owner;
     bool exchange_open;
-    mapping(address => string) special_list; // address=>name ,name like 'mining pool','DAO' etc
+    mapping(address => uint8) special_list;
 
     modifier onlyContractOwner() {
         require(msg.sender == contract_owner, "only contractOwner");
@@ -20,44 +21,37 @@ contract MSN is ERC20 {
         uint256 inisupply
     ) ERC20(name, symbol) {
         contract_owner = msg.sender;
-        special_list[msg.sender] = "ROOT";
+        special_list[msg.sender] = 1;
         exchange_open = false;
         _mint(msg.sender, inisupply * (10**uint256(decimals())));
     }
 
-    event add_special_EVENT(address special_addr, string _name);
+    event add_special_EVENT(address special_addr, uint8 _id);
 
-    function add_special(address special_addr, string calldata _name)
+    function add_special(address special_addr, uint8 _id)
         external
         onlyContractOwner
     {
-        require(bytes(_name).length != 0, "No Name");
-        special_list[special_addr] = _name;
-        emit add_special_EVENT(special_addr, _name);
+        require(_id >= 0, "starting from 1");
+        special_list[special_addr] = _id;
+        emit add_special_EVENT(special_addr, _id);
     }
 
-    event remove_special_EVENT(address special_addr, string special_name);
+    event remove_special_EVENT(address special_addr, uint8 _special_id);
 
     function remove_special(address special_addr) external onlyContractOwner {
+        require(special_list[special_addr] > 0, "No such special");
         require(
-            bytes(special_list[special_addr]).length != 0,
-            "No such special"
+            special_addr != contract_owner,
+            "Can not delete contract Owner"
         );
-        require(special_addr != contract_owner, "Can not delete ROOT");
-        string memory special_name = special_list[special_addr];
+        uint8 special_id = special_list[special_addr];
         delete special_list[special_addr];
-        emit remove_special_EVENT(special_addr, special_name);
+        emit remove_special_EVENT(special_addr, special_id);
     }
 
-    function get_special(address special_addr)
-        external
-        view
-        returns (string memory)
-    {
-        require(
-            bytes(special_list[special_addr]).length != 0,
-            "No such special"
-        );
+    function get_special(address special_addr) external view returns (uint8) {
+        require(special_list[special_addr] > 0, "No such special");
         return special_list[special_addr];
     }
 
@@ -87,8 +81,8 @@ contract MSN is ERC20 {
     ) internal override {
         require(
             exchange_open == true ||
-                (bytes(special_list[owner]).length != 0) ||
-                (bytes(special_list[spender]).length != 0),
+                (special_list[owner] > 0) ||
+                (special_list[spender] > 0),
             "exchange closed && not special"
         );
 
@@ -109,17 +103,14 @@ contract MSN is ERC20 {
     ) internal override {
         require(
             exchange_open == true ||
-                (bytes(special_list[sender]).length != 0) ||
-                (bytes(special_list[recipient]).length != 0),
+                (special_list[sender] > 0) ||
+                (special_list[recipient] > 0),
             "exchange closed && not special"
         );
 
         super._transfer(sender, recipient, amount);
 
-        if (
-            (bytes(special_list[sender]).length != 0) ||
-            (bytes(special_list[recipient]).length != 0)
-        ) {
+        if ((special_list[sender] > 0) || (special_list[recipient] > 0)) {
             emit special_transfer_EVENT(
                 sender,
                 recipient,
