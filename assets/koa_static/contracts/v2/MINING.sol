@@ -11,12 +11,14 @@ contract MINING {
     address private MSNAddr;
     address private MiningOwner;
 
+    mapping(address => string) private keepers; //keeper account can add add_merkle_root
     mapping(bytes32 => uint256) merkleRoots; // merkleRoot=>balance
     mapping(bytes32 => mapping(uint256 => bool)) claimed; //bytes32 merkleRoot => (index => true|false)
 
     constructor(address _MSNcontractAddr) {
         MiningOwner = msg.sender;
         MSNAddr = _MSNcontractAddr;
+        keepers[msg.sender] = "MiningOwner";
     }
 
     modifier onlyMiningOwner() {
@@ -28,8 +30,11 @@ contract MINING {
 
     function set_MiningOwner(address _newOwner) external onlyMiningOwner {
         require(_newOwner != MiningOwner, "newOwner must not be old");
+        address oldMiningOwner = MiningOwner;
+        delete keepers[oldMiningOwner];
         MiningOwner = _newOwner;
-        emit set_MiningOwner_EVENT(MiningOwner, _newOwner);
+        keepers[_newOwner] = "MiningOwner";
+        emit set_MiningOwner_EVENT(oldMiningOwner, _newOwner);
     }
 
     function get_MiningOwner() external view returns (address) {
@@ -63,11 +68,37 @@ contract MINING {
         );
     }
 
+    event add_keeper_EVENT(address keeper_addr, string keeper_name);
+
+    function add_keeper(address keeper_addr, string calldata keeper_name)
+        external
+        onlyMiningOwner
+    {
+        require(bytes(keeper_name).length != 0, "No Name");
+        keepers[keeper_addr] = keeper_name;
+        emit add_keeper_EVENT(keeper_addr, keeper_name);
+    }
+
+    event remove_keeper_EVENT(address keeper_addr, string keeper_name);
+
+    function remove_keeper(address keeper_addr) external onlyMiningOwner {
+        require(bytes(keepers[keeper_addr]).length != 0, "No such keeper");
+        require(keeper_addr != MiningOwner, "Can not delete MiningOwner");
+        string memory keeper_name = keepers[keeper_addr];
+        delete keepers[keeper_addr];
+        emit remove_keeper_EVENT(keeper_addr, keeper_name);
+    }
+
+    modifier onlyKeeper() {
+        require(bytes(keepers[msg.sender]).length != 0, "No such keeper");
+        _;
+    }
+
     event add_merkle_root_EVENT(bytes32 merkleRoot, uint256 blocktime);
 
     function add_merkle_root(bytes32 merkleRoot, uint256 amount)
-        public
-        onlyMiningOwner
+        external
+        onlyKeeper
     {
         merkleRoots[merkleRoot] = amount + 1; //+1 for never to 0 again
         emit add_merkle_root_EVENT(merkleRoot, merkleRoots[merkleRoot]);
@@ -100,7 +131,7 @@ contract MINING {
         );
 
         require(merkleRoots[merkleRoot] > amount, "Not Enough Balance");
-        merkleRoots[merkleRoot] = merkleRoots[merkleRoot] - amount;
+        merkleRoots[merkleRoot] -= amount;
 
         claimed[merkleRoot][index] = true;
         bool result = IERC20(MSNAddr).transfer(msg.sender, amount);

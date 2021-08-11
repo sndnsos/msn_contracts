@@ -10,7 +10,7 @@ contract MSN is ERC20 {
 
     address contract_owner;
     bool exchange_open;
-    mapping(address => uint8) special_list;
+    mapping(address => uint16) special_list;
 
     modifier onlyContractOwner() {
         require(msg.sender == contract_owner, "only contractOwner");
@@ -34,12 +34,12 @@ contract MSN is ERC20 {
         external
         onlyContractOwner
     {
-        require(_id >= 0, "starting from 1");
+        require(_id > 0, "starting from 1");
         special_list[special_addr] = _id;
         emit add_special_EVENT(special_addr, _id);
     }
 
-    event remove_special_EVENT(address special_addr, uint8 _special_id);
+    event remove_special_EVENT(address special_addr, uint16 _special_id);
 
     function remove_special(address special_addr) external onlyContractOwner {
         require(special_list[special_addr] > 0, "No such special");
@@ -47,12 +47,12 @@ contract MSN is ERC20 {
             special_addr != contract_owner,
             "Can not delete contract Owner"
         );
-        uint8 special_id = special_list[special_addr];
+        uint16 special_id = special_list[special_addr];
         delete special_list[special_addr];
         emit remove_special_EVENT(special_addr, special_id);
     }
 
-    function get_special(address special_addr) external view returns (uint8) {
+    function get_special(address special_addr) external view returns (uint16) {
         require(special_list[special_addr] > 0, "No such special");
         return special_list[special_addr];
     }

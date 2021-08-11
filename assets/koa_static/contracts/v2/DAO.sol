@@ -45,8 +45,11 @@ contract DAO {
 
     function set_DAOOwner(address _newOwner) external onlyDAOOwner {
         require(_newOwner != DAOOwner, "newOwner must not be old");
+        address oldDAOOwner = DAOOwner;
+        delete keepers[oldDAOOwner];
         DAOOwner = _newOwner;
-        emit set_DAOOwner_EVENT(DAOOwner, _newOwner);
+        keepers[_newOwner] = "DAOOwner";
+        emit set_DAOOwner_EVENT(oldDAOOwner, _newOwner);
     }
 
     function get_DAOOwner() external view returns (address) {
@@ -83,7 +86,7 @@ contract DAO {
     event add_keeper_EVENT(address keeper_addr, string keeper_name);
 
     function add_keeper(address keeper_addr, string calldata keeper_name)
-        public
+        external
         onlyDAOOwner
     {
         require(bytes(keeper_name).length != 0, "No Name");
@@ -93,7 +96,7 @@ contract DAO {
 
     event remove_keeper_EVENT(address keeper_addr, string keeper_name);
 
-    function remove_keeper(address keeper_addr) public onlyDAOOwner {
+    function remove_keeper(address keeper_addr) external onlyDAOOwner {
         require(bytes(keepers[keeper_addr]).length != 0, "NO SUCH Keeper");
         require(keeper_addr != DAOOwner, "CAN NOT DELETE DAOOwner");
         string memory keeper_name = keepers[keeper_addr];
@@ -126,7 +129,7 @@ contract DAO {
         uint256 _startTime,
         uint256 _endTime
     ) external onlyKeeper {
-        require(proposals[_pid].pid != 0, "Proposal already exist");
+        require(proposals[_pid].pid == 0, "Proposal already exist");
         require(
             _endTime > block.timestamp,
             "_endTime must bigger then blocktime"
@@ -184,7 +187,7 @@ contract DAO {
             allowance
         );
         if (result) {
-            deposit[msg.sender] = deposit[msg.sender] + allowance;
+            deposit[msg.sender] += allowance;
             deposit_lasttime[msg.sender] = block.timestamp;
             emit deposit_all_EVENT(msg.sender, allowance);
         }
@@ -219,9 +222,7 @@ contract DAO {
         require(votes[msg.sender][_pid] == 0, "Vote already");
 
         votes[msg.sender][_pid] = _option;
-        proposal_votes[_pid][_option] =
-            proposal_votes[_pid][_option] +
-            deposit[msg.sender];
+        proposal_votes[_pid][_option] += deposit[msg.sender];
 
         emit vote_EVENT(
             _pid,
