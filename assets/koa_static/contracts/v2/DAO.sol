@@ -21,19 +21,19 @@ contract DAO {
     address private DAOOwner;
     address private MSNAddr;
 
-    uint256 voter_keep_secs; // how much time in seconds to keep before voter withdraw
     mapping(address => string) private keepers; // how can create and manage proposals
 
     mapping(uint16 => Proposal) private proposals; // pid => proposal
     mapping(address => mapping(uint16 => uint8)) private votes; // voter => ( pid=> selected option) ,selected option start from 1
     mapping(address => uint256) private deposit; // from => amount
     mapping(address => uint256) private deposit_lasttime; //from =>last vote time
+    uint256 voter_hold_secs; // how much time in seconds to keep before voter withdraw
 
-    constructor(address _MSNcontractAddr, uint256 _voter_keep_secs) {
+    constructor(address _MSNcontractAddr, uint256 _voter_hold_secs) {
         DAOOwner = msg.sender;
         MSNAddr = _MSNcontractAddr;
         keepers[msg.sender] = "DAOOwner";
-        voter_keep_secs = _voter_keep_secs;
+        voter_hold_secs = _voter_hold_secs;
     }
 
     modifier onlyDAOOwner() {
@@ -109,12 +109,12 @@ contract DAO {
         _;
     }
 
-    function set_voter_keep_secs(uint256 secs) public onlyDAOOwner {
-        voter_keep_secs = secs;
+    function set_voter_hold_secs(uint256 secs) public onlyDAOOwner {
+        voter_hold_secs = secs;
     }
 
-    function get_voter_keep_secs() public view returns (uint256) {
-        return voter_keep_secs;
+    function get_voter_hold_secs() public view returns (uint256) {
+        return voter_hold_secs;
     }
 
     event add_proposal_EVENT(
@@ -197,7 +197,7 @@ contract DAO {
 
     function voter_withdraw_all() external {
         require(
-            deposit_lasttime[msg.sender] + voter_keep_secs < block.timestamp,
+            deposit_lasttime[msg.sender] + voter_hold_secs < block.timestamp,
             "Not Enough Time"
         );
         uint256 d_amount = deposit[msg.sender];
@@ -216,8 +216,16 @@ contract DAO {
     );
 
     function vote(uint16 _pid, uint8 _option) external {
+        require(_pid > 0, "pid must be bigger then 0");
         require(proposals[_pid].pid != 0, "Proposal not exist");
-
+        require(
+            proposals[_pid].startTime < block.timestamp,
+            "Proposal not start yet"
+        );
+        require(
+            proposals[_pid].endTime > block.timestamp,
+            "Proposal already end"
+        );
         require(deposit[msg.sender] > 0, "Can not vote without deposit");
         require(votes[msg.sender][_pid] == 0, "Vote already");
 
