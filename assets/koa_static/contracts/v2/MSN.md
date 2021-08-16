@@ -1,5 +1,5 @@
 
- ### mapping(address => uint8) special_list :
+ ### mapping(address => uint16) special_list :
 
  #### 1 for MSN contract creator
  #### 2 for MSN contract itself
